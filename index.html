@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>附近餐廳推薦與訂位</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+        system-ui, sans-serif;
+      background-color: #f3f4f6;
+      color: #111827;
+    }
+
+    header {
+      background: #111827;
+      color: #f9fafb;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    header p {
+      margin: 0.25rem 0 0;
+      font-size: 0.875rem;
+      color: #d1d5db;
+    }
+
+    main {
+      padding: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .filters span {
+      font-size: 0.875rem;
+      color: #4b5563;
+    }
+
+    .filter-btn {
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 0.35rem 0.9rem;
+      font-size: 0.85rem;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .filter-btn.active {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+
+    .info-chip {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .info-chip strong {
+      color: #111827;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
+      gap: 1rem;
+    }
+
+    #map {
+      width: 100%;
+      height: 320px;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #e5e7eb;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.18);
+    }
+
+    .embed-wrapper {
+      margin-top: 1rem;
+      background: #ffffff;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    }
+
+    .embed-wrapper h2 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    #map-embed {
+      width: 100%;
+      height: 260px;
+      border: 0;
+      border-radius: 0.75rem;
+    }
+
+    .embed-hint {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    #places-list {
+      max-height: calc(320px + 260px + 1.5rem);
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .place-card {
+      background: #ffffff;
+      border-radius: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    }
+
+    .place-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .place-header h2 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .address {
+      margin: 0.2rem 0 0;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .rating {
+      text-align: right;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .rating span:first-child {
+      display: inline-block;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      background: #fbbf24;
+      color: #111827;
+      font-weight: 600;
+      margin-bottom: 0.15rem;
+    }
+
+    .rating .count {
+      display: block;
+      color: #6b7280;
+    }
+
+    .actions {
+      margin-top: 0.5rem;
+    }
+
+    .map-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.8rem;
+      background: #2563eb;
+      color: #f9fafb;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    .map-btn:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .map-btn:active {
+      transform: translateY(0);
+    }
+
+    .reviews {
+      margin-top: 0.5rem;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 0.5rem;
+    }
+
+    .review-item {
+      margin-bottom: 0.5rem;
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      margin-bottom: 0.15rem;
+      color: #4b5563;
+    }
+
+    .review-rating {
+      font-weight: 600;
+    }
+
+    .review-text {
+      margin: 0;
+      font-size: 0.8rem;
+      color: #374151;
+      white-space: pre-wrap;
+    }
+
+    .status {
+      margin: 0.25rem 0;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      #places-list {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>附近餐廳推薦與 Google 地圖訂位</h1>
+    <p>自動取得你目前位置，列出附近餐廳評分與前五則評論，並可直接在地圖內訂位。</p>
+  </header>
+
+  <main>
+    <div class="top-bar">
+      <div class="filters">
+        <span>類別：</span>
+        <button class="filter-btn active" data-type="restaurant">餐廳</button>
+        <button class="filter-btn" data-type="cafe">咖啡廳</button>
+        <button class="filter-btn" data-type="bar">酒吧</button>
+        <button class="filter-btn" data-type="bakery">烘焙 / 麵包</button>
+      </div>
+      <div class="info-chip">
+        <strong>小提醒：</strong> 需要瀏覽器允許定位權限，且網站需透過 HTTPS（GitHub Pages OK）。
+      </div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div id="map"></div>
+        <div class="embed-wrapper">
+          <h2 id="embed-title">Google 地圖訂位</h2>
+          <iframe
+            id="map-embed"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <p class="embed-hint">在右邊列表中點「在 Google 地圖上查看 / 訂位」按鈕，就會在上方地圖中顯示該餐廳，可直接在 Google 地圖中進一步訂位。</p>
+        </div>
+      </div>
+
+      <div id="places-list">
+        <p class="status">正在載入地圖與定位中...</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // TODO: 把這個換成你自己的 Google Maps API Key
+    const apiKey = "YOUR_GOOGLE_MAPS_API_KEY";
+
+    let map;
+    let placesService;
+    let currentPosition;
+    let markers = [];
+
+    const listEl = document.getElementById("places-list");
+
+    function setStatus(message) {
+      if (listEl) {
+        listEl.innerHTML = '<p class="status">' + message + "</p>";
+      }
+    }
+
+    // 逃脫文字防止 XSS
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function clearMarkers() {
+      markers.forEach((m) => m.setMap(null));
+      markers = [];
+    }
+
+    function searchNearby(type) {
+      if (!placesService || !currentPosition) return;
+
+      setStatus("載入中...");
+      clearMarkers();
+
+      const request = {
+        location: currentPosition,
+        radius: 1500, // 公尺，約 1.5 公里內
+        type: [type || "restaurant"],
+      };
+
+      placesService.nearbySearch(request, (results, status) => {
+        if (
+          status !== google.maps.places.PlacesServiceStatus.OK ||
+          !results ||
+          !results.length
+        ) {
+          setStatus("附近找不到符合條件的店家。");
+          return;
+        }
+
+        listEl.innerHTML = "";
+        const limited = results.slice(0, 10); // 最多顯示 10 間
+
+        limited.forEach((place, index) => {
+          const marker = new google.maps.Marker({
+            map,
+            position: place.geometry.location,
+            label: String(index + 1),
+          });
+          markers.push(marker);
+
+          const card = document.createElement("article");
+          card.className = "place-card";
+          card.innerHTML = `
+            <header class="place-header">
+              <div>
+                <h2>${index + 1}. ${escapeHtml(place.name || "")}</h2>
+                <p class="address">${escapeHtml(place.vicinity || "")}</p>
+              </div>
+              <div class="rating">
+                <span>★ ${place.rating || "N/A"}</span>
+                <span class="count">(${place.user_ratings_total || 0} 則評分)</span>
+              </div>
+            </header>
+            <div class="actions">
+              <button class="map-btn" data-place-id="${place.place_id}">
+                在 Google 地圖上查看 / 訂位
+              </button>
+            </div>
+            <section class="reviews">
+              <p class="status">載入評論中...</p>
+            </section>
+          `;
+          listEl.appendChild(card);
+
+          marker.addListener("click", () => {
+            map.panTo(marker.getPosition());
+          });
+
+          loadPlaceDetails(place.place_id, card);
+        });
+
+        attachMapButtons();
+      });
+    }
+
+    function loadPlaceDetails(placeId, cardEl) {
+      if (!placesService) return;
+
+      placesService.getDetails(
+        {
+          placeId,
+          fields: [
+            "name",
+            "rating",
+            "user_ratings_total",
+            "formatted_address",
+            "place_id",
+            "url",
+            "reviews",
+          ],
+        },
+        (details, status) => {
+          const reviewsContainer = cardEl.querySelector(".reviews");
+
+          if (
+            status !== google.maps.places.PlacesServiceStatus.OK ||
+            !details
+          ) {
+            if (reviewsContainer) {
+              reviewsContainer.innerHTML =
+                '<p class="status">無法取得評論。</p>';
+            }
+            return;
+          }
+
+          if (!reviewsContainer) return;
+
+          if (!details.reviews || !details.reviews.length) {
+            reviewsContainer.innerHTML =
+              '<p class="status">目前沒有可顯示的評論。</p>';
+            return;
+          }
+
+          const top5 = details.reviews.slice(0, 5);
+          reviewsContainer.innerHTML = top5
+            .map(
+              (r) => `
+                <article class="review-item">
+                  <div class="review-header">
+                    <span class="author">${escapeHtml(
+                      r.author_name || "訪客"
+                    )}</span>
+                    <span class="review-rating">★ ${r.rating || "-"}</span>
+                  </div>
+                  <p class="review-text">${escapeHtml(r.text || "")}</p>
+                </article>
+              `
+            )
+            .join("");
+
+          const btn = cardEl.querySelector(".map-btn");
+          if (btn) {
+            btn.dataset.placeId = details.place_id;
+            btn.dataset.placeName = details.name;
+          }
+        }
+      );
+    }
+
+    function attachMapButtons() {
+      const iframe = document.getElementById("map-embed");
+      const titleEl = document.getElementById("embed-title");
+
+      document.querySelectorAll(".map-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const placeId = btn.dataset.placeId;
+          const placeName = btn.dataset.placeName || "選取的餐廳";
+          if (!placeId || !iframe) return;
+
+          // 使用 Google Maps Embed API 做 inline map + 訂位
+          iframe.src =
+            "https://www.google.com/maps/embed/v1/place?key=" +
+            apiKey +
+            "&q=place_id:" +
+            encodeURIComponent(placeId);
+
+          if (titleEl) {
+            titleEl.textContent = "Google 地圖訂位：" + placeName;
+          }
+
+          iframe.focus();
+        });
+      });
+    }
+
+    function initMap() {
+      if (!navigator.geolocation) {
+        setStatus("此瀏覽器不支援定位，請手動在 Google 地圖上搜尋。");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          currentPosition = new google.maps.LatLng(
+            pos.coords.latitude,
+            pos.coords.longitude
+          );
+
+          map = new google.maps.Map(document.getElementById("map"), {
+            center: currentPosition,
+            zoom: 15,
+          });
+
+          new google.maps.Marker({
+            position: currentPosition,
+            map,
+            title: "目前位置",
+          });
+
+          placesService = new google.maps.places.PlacesService(map);
+
+          // 依照目前 active 類別搜尋
+          const activeBtn = document.querySelector(".filter-btn.active");
+          const type = activeBtn ? activeBtn.dataset.type : "restaurant";
+          searchNearby(type);
+        },
+        (err) => {
+          console.error(err);
+          setStatus("無法取得定位，請確認已允許權限或稍後再試。");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // 類別按鈕事件
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document
+          .querySelectorAll(".filter-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const type = btn.dataset.type || "restaurant";
+        searchNearby(type);
+      });
+    });
+
+    // 讓 Google Maps JS 可以呼叫
+    window.initMap = initMap;
+  </script>
+
+  <!-- Google Maps JavaScript API + Places Library -->
+  <script
+    async
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap"
+  ></script>
+</body>
+</html>
+
